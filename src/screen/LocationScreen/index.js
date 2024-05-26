@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
-const LocationsScreen = ({ savedLocations, setSavedLocations }) => {
+const LocationsScreen = ({ savedLocations }) => {
   const navigation = useNavigation();
 
   const openLocationOnMap = (location) => {
