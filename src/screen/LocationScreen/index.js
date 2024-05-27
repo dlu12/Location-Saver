@@ -2,16 +2,13 @@ import React from "react";
 import {
   View,
   Text,
+  StyleSheet,
   FlatList,
   TouchableOpacity,
-  StyleSheet,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
 
-const LocationsScreen = ({ savedLocations }) => {
-  const navigation = useNavigation();
-
-  const openLocationOnMap = (location) => {
+export default function LocationScreen({ navigation, savedLocations }) {
+  const handleLocationPress = (location) => {
     navigation.navigate("Map", { location });
   };
 
@@ -21,21 +18,17 @@ const LocationsScreen = ({ savedLocations }) => {
         data={savedLocations}
         keyExtractor={(item, index) => index.toString()}
         renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => openLocationOnMap(item)}>
+          <TouchableOpacity onPress={() => handleLocationPress(item)}>
             <View style={styles.item}>
               <Text style={styles.title}>{item.address}</Text>
-              <Text>
-                {item.latitude}, {item.longitude}
-              </Text>
+              <Text>{`Lat: ${item.latitude}, Lon: ${item.longitude}`}</Text>
             </View>
           </TouchableOpacity>
         )}
       />
     </View>
   );
-};
-
-export default LocationsScreen;
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -44,13 +37,11 @@ const styles = StyleSheet.create({
   },
   item: {
     padding: 10,
-    marginVertical: 8,
-    marginHorizontal: 16,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    borderRadius: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc",
   },
   title: {
     fontSize: 18,
+    fontWeight: "600",
   },
 });

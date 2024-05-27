@@ -1,18 +1,79 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, Modal, TextInput, Button, StyleSheet } from "react-native";
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  Modal,
+  TextInput,
+  Button,
+  StyleSheet,
+  Alert,
+} from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import axios from "axios";
+import { useIsFocused } from "@react-navigation/native";
 
-const MapScreen = ({ savedLocations, setSavedLocations }) => {
+export default function MapScreen({
+  route,
+  savedLocations,
+  setSavedLocations,
+}) {
   const [region, setRegion] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [locationName, setLocationName] = useState("");
+  const isFocused = useIsFocused();
 
   useEffect(() => {
-    getCurrentLocation();
+    (async () => {
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert("Permission to access location was denied");
+          return;
+        }
+
+        let location = await Location.getCurrentPositionAsync({});
+        setRegion({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        });
+      } catch (error) {
+        handleLocationError(error);
+      }
+    })();
   }, []);
+
+  useEffect(() => {
+    if (isFocused && route.params?.location) {
+      const { latitude, longitude } = route.params.location;
+      setRegion({
+        latitude,
+        longitude,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      });
+    }
+  }, [isFocused, route.params?.location]);
+
+  const handleLocationError = (error) => {
+    if (error.message.includes("Location services are disabled")) {
+      Alert.alert(
+        "Location Services Disabled",
+        "Please enable location services in your device settings."
+      );
+    } else if (error.message.includes("Location request timed out")) {
+      Alert.alert(
+        "Location Request Timed Out",
+        "Please try again later or move to an area with better reception."
+      );
+    } else {
+      Alert.alert("Error getting location", error.message);
+    }
+    console.error(error);
+  };
 
   const getAddressFromCoords = async (latitude, longitude) => {
     try {
@@ -21,6 +82,7 @@ const MapScreen = ({ savedLocations, setSavedLocations }) => {
       );
       return response.data.display_name;
     } catch (error) {
+      Alert.alert("Error fetching address", error.message);
       console.error(error);
     }
   };
@@ -38,24 +100,13 @@ const MapScreen = ({ savedLocations, setSavedLocations }) => {
     setModalVisible(false);
   };
 
-  const getCurrentLocation = async () => {
-    let { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") {
-      alert("Permission to access location was denied");
-      return;
-    }
-    let location = await Location.getCurrentPositionAsync({});
-    setRegion({
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
-      latitudeDelta: 0.0922,
-      longitudeDelta: 0.0421,
-    });
+  const cancel = () => {
+    setModalVisible(false);
   };
 
   return (
     <View style={styles.container}>
-      {region && (
+      {region ? (
         <MapView style={styles.map} region={region} onPress={handleMapPress}>
           {savedLocations.map((loc, index) => (
             <Marker
@@ -65,6 +116,8 @@ const MapScreen = ({ savedLocations, setSavedLocations }) => {
             />
           ))}
         </MapView>
+      ) : (
+        <Text>Loading map...</Text>
       )}
 
       <Modal
@@ -72,6 +125,7 @@ const MapScreen = ({ savedLocations, setSavedLocations }) => {
         transparent={true}
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
+        style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }}
       >
         <View style={styles.modalView}>
           <Text style={styles.modalText}>Save Location</Text>
@@ -82,14 +136,21 @@ const MapScreen = ({ savedLocations, setSavedLocations }) => {
             onChangeText={setLocationName}
           />
           <Text>{selectedLocation?.address}</Text>
-          <Button title="Save Location" onPress={saveLocation} />
+          <View style={{ flexDirection: "row", margin: 10 }}>
+            <View style={{ marginRight: 5 }}>
+              <Button title="Cancel" onPress={cancel} color={"#E0E0E0"} />
+            </View>
+            <Button
+              title="Save Location"
+              onPress={saveLocation}
+              color={"#87f5a4"}
+            />
+          </View>
         </View>
       </Modal>
     </View>
   );
-};
-
-export default MapScreen;
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -100,11 +161,12 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   modalView: {
+    justifyContent: "center",
+    alignItems: "center",
     margin: 20,
-    backgroundColor: "white",
+    backgroundColor: "#fff",
     borderRadius: 20,
     padding: 35,
-    alignItems: "center",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -117,11 +179,14 @@ const styles = StyleSheet.create({
   modalText: {
     marginBottom: 15,
     textAlign: "center",
+    fontSize: 20,
+    fontWeight: "800",
   },
   input: {
     height: 40,
     borderColor: "gray",
     borderWidth: 1,
+    borderRadius: 10,
     marginBottom: 15,
     paddingLeft: 8,
     width: "80%",

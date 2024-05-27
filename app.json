@@ -1,7 +1,15 @@
 {
   "expo": {
     "name": "LocationSaverApp",
-    "slug": "LocationSaverApp",
-    "version": "1.0.0"
+    "slug": "locationsaverapp",
+    "version": "1.0.0",
+    "android": {
+      "permissions": ["ACCESS_BACKGROUND_LOCATION"],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCxAuJgVJJuKqumia46qJinGHut7LRk868"
+        }
+      }
+    }
   }
 }
